@@ -63,7 +63,6 @@ function send() {
 }
 /**Discordに送信する */
 const sendDiscord = () => {
-    const url = "https://discord.com/api/webhooks/958291954590949386/K8UUWptVGD7hADyglLU9maAlUvL4C4vKYGBIdpQQm6GPANF8irHVwH7IwnjpzkjfYkPx";
     const message = createBodyMessage();
     const body = {
         content: message,
@@ -73,6 +72,6 @@ const sendDiscord = () => {
         method: "post",
         payload: body,
     };
-    const res = UrlFetchApp.fetch(url, options);
+    const res = UrlFetchApp.fetch(DISCORD_URL, options);
     Logger.log(res);
 };

@@ -1,6 +1,3 @@
-const DATABASE_ID = "2ba2cca6574d4bc883cc1d169c9d638a";
-const MY_NOTION_TOKEN = "secret_FAq57RVurbCK8ZmUu5mKeQ5crJho5agZzFGPgUyNJ2H";
-const todoCalendar = CalendarApp.getCalendarById("o3kltevsha3qpb91mqhdut1ops@group.calendar.google.com");
 const NOTION_REQUEST_HEADERS = {
 	"Content-type": "application/json",
 	Authorization: "Bearer " + MY_NOTION_TOKEN,
