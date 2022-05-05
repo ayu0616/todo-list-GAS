@@ -190,7 +190,7 @@ function syncNotion() {
 	const payload = {
 		filter: {
 			property: "課題",
-			text: {
+			title: {
 				is_not_empty: true,
 			},
 		},
