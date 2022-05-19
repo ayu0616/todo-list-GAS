@@ -10,12 +10,7 @@ const TaskData = class {
 	dueDate: Date;
 	description: string;
 
-	constructor(
-		taskName: string,
-		className: string,
-		dueDate: Date,
-		description: string = "",
-	) {
+	constructor(taskName: string, className: string, dueDate: Date, description: string = "") {
 		this.taskName = taskName;
 		this.className = className;
 		this.dueDate = dueDate;
@@ -52,12 +47,7 @@ type NotionTaskProperties = {
 	課題: { title: { text: { content: string } }[] };
 };
 
-type NotionTask = {
-	object: string;
-	id: string;
-	url: string;
-	properties: NotionTaskProperties;
-};
+type NotionTask = { object: string; id: string; url: string; properties: NotionTaskProperties };
 
 /**Notionから課題を取得 */
 function getTasksFromNotion(payload: object) {
@@ -108,17 +98,14 @@ function createEventDataList(events: GoogleAppsScript.Calendar.CalendarEvent[]) 
 }
 
 /**Notionにあってカレンダーに存在しない課題をカレンダーに追加 */
-function createEvents(
-	existEvents: GoogleAppsScript.Calendar.CalendarEvent[],
-	tasks: NotionTask[],
-) {
+function createEvents(existEvents: GoogleAppsScript.Calendar.CalendarEvent[], tasks: NotionTask[]) {
 	const eventDataLists = createEventDataList(existEvents);
-	for (let task of tasks) {
+	const uncheckedTasks = tasks.filter((task) => !task.properties.チェック.checkbox);
+	for (let task of uncheckedTasks) {
 		const taskData = createTaskData(task);
 		const eventTitle = taskData.getEventTitle();
 		const existEventDataSame = eventDataLists.filter(
-			(data) =>
-				data.getEventTitle() === eventTitle && data.dueDate.toString() === taskData.dueDate.toString(),
+			(data) => data.getEventTitle() === eventTitle && data.dueDate.toString() === taskData.dueDate.toString(),
 		);
 		// 課題がカレンダーに存在していたらスキップする（カレンダーの名前と締切日時が一致するものがあったらスキップ）
 		if (existEventDataSame.length > 0) {
@@ -128,12 +115,7 @@ function createEvents(
 		const endTime = new Date(startTime);
 		endTime.setMinutes(endTime.getMinutes() + 30);
 		const option = { description: taskData.description };
-		const newEvent = todoCalendar.createEvent(
-			eventTitle,
-			startTime,
-			endTime,
-			option,
-		);
+		const newEvent = todoCalendar.createEvent(eventTitle, startTime, endTime, option);
 		newEvent.addPopupReminder(60);
 		newEvent.addPopupReminder(60 * 24);
 		Logger.log(eventTitle + "をカレンダーに追加しました");
@@ -141,10 +123,7 @@ function createEvents(
 }
 
 /**カレンダーにあってNotionにない課題をNotionに追加 */
-const createNotionTask = (
-	existEvents: GoogleAppsScript.Calendar.CalendarEvent[],
-	tasks: NotionTask[],
-) => {
+const createNotionTask = (existEvents: GoogleAppsScript.Calendar.CalendarEvent[], tasks: NotionTask[]) => {
 	const notionDataList = tasks.map((task) => createTaskData(task));
 	const url = `https://api.notion.com/v1/pages`;
 	for (let event of existEvents) {
@@ -164,10 +143,7 @@ const createNotionTask = (
 		const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
 			method: "post",
 			headers: NOTION_REQUEST_HEADERS,
-			payload: JSON.stringify({
-				parent: { database_id: DATABASE_ID },
-				properties: properties,
-			}),
+			payload: JSON.stringify({ parent: { database_id: DATABASE_ID }, properties: properties }),
 		};
 		UrlFetchApp.fetch(url, options);
 	}
@@ -180,13 +156,13 @@ function syncNotion() {
 		filter: {
 			and: [
 				{ property: "課題", title: { is_not_empty: true } },
-				// { property: "チェック", checkbox: { equals: false } },
+				//  { property: "チェック", checkbox: { equals: false } }
 			],
 		},
 	};
 	const tasks = getTasksFromNotion(payload);
 	createEvents(existEvents, tasks);
-	createNotionTask(existEvents, tasks);
+	// createNotionTask(existEvents, tasks);
 	// deleteEvents(existEvents, tasks);
 }
 

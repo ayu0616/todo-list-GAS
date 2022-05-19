@@ -134,7 +134,7 @@ function syncNotion() {
         filter: {
             and: [
                 { property: "課題", title: { is_not_empty: true } },
-                // { property: "チェック", checkbox: { equals: false } },
+                { property: "チェック", checkbox: { equals: false } },
             ],
         },
     };
