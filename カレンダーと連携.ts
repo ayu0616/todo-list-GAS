@@ -28,6 +28,10 @@ const TaskData = class {
 		const formattedDateString = dateString.replace("Z", "+09:00");
 		return formattedDateString;
 	}
+
+	getDueMicrosecondString() {
+		return this.dueDate.getTime().toString();
+	}
 };
 
 /**カレンダーからイベントを取得 */
@@ -100,8 +104,12 @@ function createEventDataList(events: GoogleAppsScript.Calendar.CalendarEvent[]) 
 /**Notionにあってカレンダーに存在しない課題をカレンダーに追加 */
 function createEvents(existEvents: GoogleAppsScript.Calendar.CalendarEvent[], tasks: NotionTask[]) {
 	const eventDataLists = createEventDataList(existEvents);
+<<<<<<< HEAD
 	const uncheckedTasks = tasks.filter((task) => !task.properties.チェック?.checkbox);
 	for (let task of uncheckedTasks) {
+=======
+	for (let task of tasks) {
+>>>>>>> 4c818676dae475400425fda90affdde942cfe00f
 		const taskData = createTaskData(task);
 		const eventTitle = taskData.getEventTitle();
 		const existEventDataSame = eventDataLists.filter(
@@ -149,15 +157,46 @@ const createNotionTask = (existEvents: GoogleAppsScript.Calendar.CalendarEvent[]
 	}
 };
 
+/**チェックの付いたNotionのタスクを削除 */
+function deleteChecked() {
+	const payload = { filter: { property: "チェック", checkbox: { equals: true } } };
+	const checkedTasks = getTasksFromNotion(payload);
+
+	const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
+		method: "patch",
+		headers: NOTION_REQUEST_HEADERS,
+		payload: JSON.stringify({ archived: true }),
+	};
+	for (let checkedTask of checkedTasks) {
+		// Notionから削除
+		const id = checkedTask.id;
+		const url = "https://api.notion.com/v1/pages/" + id;
+		UrlFetchApp.fetch(url, options);
+	}
+}
+
+/** Notionにないカレンダーイベントを削除する */
+const deleteCalendarEvent = (existEvents: GoogleAppsScript.Calendar.CalendarEvent[], tasks: NotionTask[]) => {
+	const notionDataList = tasks.map((task) => createTaskData(task));
+	const notionTaskTitleAndDues = notionDataList.map(
+		(taskData) => [taskData.taskName, taskData.getDueMicrosecondString()].toString(),
+	);
+	for (let event of existEvents) {
+		const eventData = createEventData(event);
+		// カレンダーのタスクがNotionに存在しなかったら
+		if (!notionTaskTitleAndDues.includes([eventData.taskName, eventData.getDueMicrosecondString()].toString())) {
+			event.deleteEvent();
+			Logger.log(eventData.taskName + "をカレンダーから削除しました");
+		}
+	}
+};
+
 /**定期実行する関数 */
 function syncNotion() {
 	const existEvents = findEvents();
 	const payload = {
 		filter: {
-			and: [
-				{ property: "課題", title: { is_not_empty: true } },
-				//  { property: "チェック", checkbox: { equals: false } }
-			],
+			and: [{ property: "課題", title: { is_not_empty: true } }, { property: "チェック", checkbox: { equals: false } }],
 		},
 	};
 	const tasks = getTasksFromNotion(payload);
@@ -165,35 +204,4 @@ function syncNotion() {
   deleteChecked()
 	// createNotionTask(existEvents, tasks);
 	// deleteEvents(existEvents, tasks);
-}
-
-/**チェックの付いたNotionのタスクとカレンダーのイベントを削除 */
-function deleteChecked() {
-	const payload = { filter: { property: "チェック", checkbox: { equals: true } } };
-	const checkedTasks = getTasksFromNotion(payload);
-
-	// const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
-	// 	method: "patch",
-	// 	headers: NOTION_REQUEST_HEADERS,
-	// 	payload: JSON.stringify({ archived: true }),
-	// };
-	for (let checkedTask of checkedTasks) {
-		// 	// Notionから削除
-		// 	const id = checkedTask.id;
-		// 	const url = "https://api.notion.com/v1/pages/" + id;
-		// 	UrlFetchApp.fetch(url, options);
-
-		// カレンダーから削除
-		const existEvents = findEvents();
-		const checkedTaskData = createTaskData(checkedTask);
-		for (let event of existEvents) {
-			const eventData = createEventData(event);
-			if (
-				eventData.getEventTitle() === checkedTaskData.getEventTitle() && eventData.dueDate.toString() === checkedTaskData.dueDate.toString()
-			) {
-				event.deleteEvent();
-				Logger.log(eventData.getEventTitle() + "をカレンダーから削除しました");
-			}
-		}
-	}
 }

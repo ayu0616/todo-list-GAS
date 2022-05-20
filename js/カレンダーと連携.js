@@ -1,81 +1,80 @@
 "use strict";
 const NOTION_REQUEST_HEADERS = {
-    "Content-type": "application/json",
-    Authorization: "Bearer " + MY_NOTION_TOKEN,
-    "Notion-Version": "2022-02-22",
+	"Content-type": "application/json",
+	Authorization: "Bearer " + MY_NOTION_TOKEN,
+	"Notion-Version": "2022-02-22",
 };
 const TaskData = class {
-    // taskName;
-    // className;
-    // dueDate;
-    // description;
-    constructor(taskName, className, dueDate, description = "") {
-        this.taskName = taskName;
-        this.className = className;
-        this.dueDate = dueDate;
-        this.description = description;
-    }
-    getEventTitle() {
-        return this.taskName + "【" + this.className + "】";
-    }
-    getDueISOJp() {
-        const dateCopy = new Date(this.dueDate);
-        dateCopy.setHours(dateCopy.getHours() + 9);
-        const dateString = dateCopy.toISOString();
-        const formattedDateString = dateString.replace("Z", "+09:00");
-        return formattedDateString;
-    }
+	// taskName;
+	// className;
+	// dueDate;
+	// description;
+	constructor(taskName, className, dueDate, description = "") {
+		this.taskName = taskName;
+		this.className = className;
+		this.dueDate = dueDate;
+		this.description = description;
+	}
+	getEventTitle() {
+		return this.taskName + "【" + this.className + "】";
+	}
+	getDueISOJp() {
+		const dateCopy = new Date(this.dueDate);
+		dateCopy.setHours(dateCopy.getHours() + 9);
+		const dateString = dateCopy.toISOString();
+		const formattedDateString = dateString.replace("Z", "+09:00");
+		return formattedDateString;
+	}
+	getDueMicrosecondString() {
+		return this.dueDate.getTime().toString();
+	}
 };
 /**カレンダーからイベントを取得 */
 function findEvents() {
-    const zeroTime = new Date(0);
-    const futureTime = new Date(2100, 0);
-    const events = todoCalendar.getEvents(zeroTime, futureTime);
-    return events;
+	const zeroTime = new Date(0);
+	const futureTime = new Date(2100, 0);
+	const events = todoCalendar.getEvents(zeroTime, futureTime);
+	return events;
 }
 /**Notionから課題を取得 */
 function getTasksFromNotion(payload) {
-    const url = `https://api.notion.com/v1/databases/${DATABASE_ID}/query`;
-    const options = {
-        method: "post",
-        headers: NOTION_REQUEST_HEADERS,
-        payload: JSON.stringify(payload),
-    };
-    const res = UrlFetchApp.fetch(url, options);
-    const resStr = res.toString();
-    const resJson = JSON.parse(resStr);
-    const tasks = resJson["results"];
-    return tasks;
+	const url = `https://api.notion.com/v1/databases/${DATABASE_ID}/query`;
+	const options = { method: "post", headers: NOTION_REQUEST_HEADERS, payload: JSON.stringify(payload) };
+	const res = UrlFetchApp.fetch(url, options);
+	const resStr = res.toString();
+	const resJson = JSON.parse(resStr);
+	const tasks = resJson["results"];
+	return tasks;
 }
 /**課題のデータを辞書に格納 */
 function createTaskData(task) {
-    const title = task["properties"]["課題"]["title"][0]["text"]["content"];
-    const dueDate = new Date(task["properties"]["締切日時"]["date"]["start"]);
-    const className = task["properties"]["授業名"]["select"]["name"];
-    let url = "";
-    if (task.properties.URL) {
-        url = task.properties.URL.url;
-    }
-    const taskData = new TaskData(title, className, dueDate, url);
-    return taskData;
+	const title = task["properties"]["課題"]["title"][0]["text"]["content"];
+	const dueDate = new Date(task["properties"]["締切日時"]["date"]["start"]);
+	const className = task["properties"]["授業名"]["select"]["name"];
+	let url = "";
+	if (task.properties.URL) {
+		url = task.properties.URL.url;
+	}
+	const taskData = new TaskData(title, className, dueDate, url);
+	return taskData;
 }
 /**イベントのタイトルと開始日時のリストを作成 */
 const createEventData = (event) => {
-    const title = event.getTitle();
-    const taskName = title.replace(/【[月火水木金][１-５].*】$/, "");
-    const classNameMatch = title.match(/【([月火水木金][１-５].*)】/);
-    if (!classNameMatch) {
-        throw new Error("カレンダーイベントのタイトルが不適切です\n【】の中に授業名を入れましょう");
-    }
-    const className = classNameMatch[1];
-    const dueDate = new Date(event.getStartTime());
-    const description = event.getDescription();
-    return new TaskData(taskName, className, dueDate, description);
+	const title = event.getTitle();
+	const taskName = title.replace(/【[月火水木金][１-５].*】$/, "");
+	const classNameMatch = title.match(/【([月火水木金][１-５].*)】/);
+	if (!classNameMatch) {
+		throw new Error("カレンダーイベントのタイトルが不適切です\n【】の中に授業名を入れましょう");
+	}
+	const className = classNameMatch[1];
+	const dueDate = new Date(event.getStartTime());
+	const description = event.getDescription();
+	return new TaskData(taskName, className, dueDate, description);
 };
 /**イベントのタイトルと開始日時のリストを作成 */
 function createEventDataList(events) {
-    const eventTaskDataList = events.map((event) => createEventData(event));
-    return eventTaskDataList;
+	const eventTaskDataList = events.map((event) => createEventData(event));
+	return eventTaskDataList;
 }
 /**Notionにあってカレンダーに存在しない課題をカレンダーに追加 */
 function createEvents(existEvents, tasks) {
