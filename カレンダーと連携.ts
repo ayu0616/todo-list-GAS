@@ -100,7 +100,7 @@ function createEventDataList(events: GoogleAppsScript.Calendar.CalendarEvent[]) 
 /**Notionにあってカレンダーに存在しない課題をカレンダーに追加 */
 function createEvents(existEvents: GoogleAppsScript.Calendar.CalendarEvent[], tasks: NotionTask[]) {
 	const eventDataLists = createEventDataList(existEvents);
-	const uncheckedTasks = tasks.filter((task) => !task.properties.チェック.checkbox);
+	const uncheckedTasks = tasks.filter((task) => !task.properties.チェック?.checkbox);
 	for (let task of uncheckedTasks) {
 		const taskData = createTaskData(task);
 		const eventTitle = taskData.getEventTitle();
@@ -162,6 +162,7 @@ function syncNotion() {
 	};
 	const tasks = getTasksFromNotion(payload);
 	createEvents(existEvents, tasks);
+  deleteChecked()
 	// createNotionTask(existEvents, tasks);
 	// deleteEvents(existEvents, tasks);
 }

@@ -80,7 +80,8 @@ function createEventDataList(events) {
 /**Notionにあってカレンダーに存在しない課題をカレンダーに追加 */
 function createEvents(existEvents, tasks) {
     const eventDataLists = createEventDataList(existEvents);
-    for (let task of tasks) {
+    const uncheckedTasks = tasks.filter((task) => !task.properties.チェック?.checkbox);
+    for (let task of uncheckedTasks) {
         const taskData = createTaskData(task);
         const eventTitle = taskData.getEventTitle();
         const existEventDataSame = eventDataLists.filter((data) => data.getEventTitle() === eventTitle && data.dueDate.toString() === taskData.dueDate.toString());
@@ -119,10 +120,7 @@ const createNotionTask = (existEvents, tasks) => {
         const options = {
             method: "post",
             headers: NOTION_REQUEST_HEADERS,
-            payload: JSON.stringify({
-                parent: { database_id: DATABASE_ID },
-                properties: properties,
-            }),
+            payload: JSON.stringify({ parent: { database_id: DATABASE_ID }, properties: properties }),
         };
         UrlFetchApp.fetch(url, options);
     }
@@ -134,13 +132,14 @@ function syncNotion() {
         filter: {
             and: [
                 { property: "課題", title: { is_not_empty: true } },
-                { property: "チェック", checkbox: { equals: false } },
+                //  { property: "チェック", checkbox: { equals: false } }
             ],
         },
     };
     const tasks = getTasksFromNotion(payload);
     createEvents(existEvents, tasks);
-    createNotionTask(existEvents, tasks);
+    deleteChecked();
+    // createNotionTask(existEvents, tasks);
     // deleteEvents(existEvents, tasks);
 }
 /**チェックの付いたNotionのタスクとカレンダーのイベントを削除 */
